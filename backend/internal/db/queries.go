@@ -2,7 +2,6 @@ package db
 
 import (
 	"database/sql"
-	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -20,7 +19,7 @@ func CreateUser(db *sql.DB, email, passwordHash string) (*models.User, error) {
 		CreatedAt:    time.Now().UTC(),
 	}
 	_, err := db.Exec(
-		`INSERT INTO users (id, email, password_hash, plan, created_at) VALUES (?, ?, ?, ?, ?)`,
+		`INSERT INTO users (id, email, password_hash, plan, created_at) VALUES ($1, $2, $3, $4, $5)`,
 		u.ID, u.Email, u.PasswordHash, u.Plan, u.CreatedAt,
 	)
 	if err != nil {
@@ -32,7 +31,7 @@ func CreateUser(db *sql.DB, email, passwordHash string) (*models.User, error) {
 func GetUserByEmail(db *sql.DB, email string) (*models.User, error) {
 	u := &models.User{}
 	err := db.QueryRow(
-		`SELECT id, email, password_hash, plan, created_at FROM users WHERE email = ?`, email,
+		`SELECT id, email, password_hash, plan, created_at FROM users WHERE email = $1`, email,
 	).Scan(&u.ID, &u.Email, &u.PasswordHash, &u.Plan, &u.CreatedAt)
 	if err != nil {
 		return nil, err
@@ -43,7 +42,7 @@ func GetUserByEmail(db *sql.DB, email string) (*models.User, error) {
 func GetUserByID(db *sql.DB, id string) (*models.User, error) {
 	u := &models.User{}
 	err := db.QueryRow(
-		`SELECT id, email, password_hash, plan, created_at FROM users WHERE id = ?`, id,
+		`SELECT id, email, password_hash, plan, created_at FROM users WHERE id = $1`, id,
 	).Scan(&u.ID, &u.Email, &u.PasswordHash, &u.Plan, &u.CreatedAt)
 	if err != nil {
 		return nil, err
@@ -55,7 +54,7 @@ func GetUserByID(db *sql.DB, id string) (*models.User, error) {
 
 func CountMonitorsByUser(db *sql.DB, userID string) (int, error) {
 	var count int
-	err := db.QueryRow(`SELECT COUNT(*) FROM monitors WHERE user_id = ?`, userID).Scan(&count)
+	err := db.QueryRow(`SELECT COUNT(*) FROM monitors WHERE user_id = $1`, userID).Scan(&count)
 	return count, err
 }
 
@@ -74,8 +73,8 @@ func CreateMonitor(db *sql.DB, userID, name, url string, intervalSeconds int) (*
 	}
 	_, err := db.Exec(
 		`INSERT INTO monitors (id, user_id, name, url, interval_seconds, status, alert_email, is_public, consecutive_failures, created_at, updated_at)
-		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)`,
-		m.ID, m.UserID, m.Name, m.URL, m.IntervalSeconds, m.Status, boolToInt(m.AlertEmail), boolToInt(m.IsPublic), m.CreatedAt, m.UpdatedAt,
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 0, $9, $10)`,
+		m.ID, m.UserID, m.Name, m.URL, m.IntervalSeconds, m.Status, m.AlertEmail, m.IsPublic, m.CreatedAt, m.UpdatedAt,
 	)
 	if err != nil {
 		return nil, err
@@ -86,7 +85,7 @@ func CreateMonitor(db *sql.DB, userID, name, url string, intervalSeconds int) (*
 func ListMonitorsByUser(db *sql.DB, userID string) ([]*models.Monitor, error) {
 	rows, err := db.Query(
 		`SELECT id, user_id, name, url, interval_seconds, status, alert_email, is_public, consecutive_failures, created_at, updated_at
-		 FROM monitors WHERE user_id = ? ORDER BY created_at DESC`, userID,
+		 FROM monitors WHERE user_id = $1 ORDER BY created_at DESC`, userID,
 	)
 	if err != nil {
 		return nil, err
@@ -98,7 +97,7 @@ func ListMonitorsByUser(db *sql.DB, userID string) ([]*models.Monitor, error) {
 func GetMonitor(db *sql.DB, id string) (*models.Monitor, error) {
 	row := db.QueryRow(
 		`SELECT id, user_id, name, url, interval_seconds, status, alert_email, is_public, consecutive_failures, created_at, updated_at
-		 FROM monitors WHERE id = ?`, id,
+		 FROM monitors WHERE id = $1`, id,
 	)
 	return scanMonitor(row)
 }
@@ -117,9 +116,9 @@ func GetAllActiveMonitors(db *sql.DB) ([]*models.Monitor, error) {
 
 func UpdateMonitor(db *sql.DB, id, userID, name, url string, intervalSeconds int, alertEmail, isPublic bool) error {
 	res, err := db.Exec(
-		`UPDATE monitors SET name=?, url=?, interval_seconds=?, alert_email=?, is_public=?, updated_at=?
-		 WHERE id=? AND user_id=?`,
-		name, url, intervalSeconds, boolToInt(alertEmail), boolToInt(isPublic), time.Now().UTC(), id, userID,
+		`UPDATE monitors SET name=$1, url=$2, interval_seconds=$3, alert_email=$4, is_public=$5, updated_at=$6
+		 WHERE id=$7 AND user_id=$8`,
+		name, url, intervalSeconds, alertEmail, isPublic, time.Now().UTC(), id, userID,
 	)
 	if err != nil {
 		return err
@@ -132,7 +131,7 @@ func UpdateMonitor(db *sql.DB, id, userID, name, url string, intervalSeconds int
 }
 
 func DeleteMonitor(db *sql.DB, id, userID string) error {
-	res, err := db.Exec(`DELETE FROM monitors WHERE id=? AND user_id=?`, id, userID)
+	res, err := db.Exec(`DELETE FROM monitors WHERE id=$1 AND user_id=$2`, id, userID)
 	if err != nil {
 		return err
 	}
@@ -145,7 +144,7 @@ func DeleteMonitor(db *sql.DB, id, userID string) error {
 
 func UpdateMonitorStatus(db *sql.DB, id, status string, consecutiveFailures int) error {
 	_, err := db.Exec(
-		`UPDATE monitors SET status=?, consecutive_failures=?, updated_at=? WHERE id=?`,
+		`UPDATE monitors SET status=$1, consecutive_failures=$2, updated_at=$3 WHERE id=$4`,
 		status, consecutiveFailures, time.Now().UTC(), id,
 	)
 	return err
@@ -156,8 +155,8 @@ func UpdateMonitorStatus(db *sql.DB, id, status string, consecutiveFailures int)
 func CreateCheck(db *sql.DB, monitorID string, statusCode *int, responseTimeMs *int, isUp bool, errStr *string) error {
 	_, err := db.Exec(
 		`INSERT INTO checks (id, monitor_id, status_code, response_time_ms, is_up, error, checked_at)
-		 VALUES (?, ?, ?, ?, ?, ?, ?)`,
-		uuid.NewString(), monitorID, statusCode, responseTimeMs, boolToInt(isUp), errStr, time.Now().UTC(),
+		 VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+		uuid.NewString(), monitorID, statusCode, responseTimeMs, isUp, errStr, time.Now().UTC(),
 	)
 	return err
 }
@@ -165,9 +164,9 @@ func CreateCheck(db *sql.DB, monitorID string, statusCode *int, responseTimeMs *
 func ListChecks(db *sql.DB, monitorID string, hours int) ([]*models.Check, error) {
 	rows, err := db.Query(
 		`SELECT id, monitor_id, status_code, response_time_ms, is_up, error, checked_at
-		 FROM checks WHERE monitor_id = ? AND checked_at >= datetime('now', ? || ' hours')
+		 FROM checks WHERE monitor_id = $1 AND checked_at >= NOW() - make_interval(hours => $2)
 		 ORDER BY checked_at DESC LIMIT 500`,
-		monitorID, fmt.Sprintf("-%d", hours),
+		monitorID, hours,
 	)
 	if err != nil {
 		return nil, err
@@ -177,11 +176,9 @@ func ListChecks(db *sql.DB, monitorID string, hours int) ([]*models.Check, error
 	var checks []*models.Check
 	for rows.Next() {
 		c := &models.Check{}
-		var isUpInt int
-		if err := rows.Scan(&c.ID, &c.MonitorID, &c.StatusCode, &c.ResponseTimeMs, &isUpInt, &c.Error, &c.CheckedAt); err != nil {
+		if err := rows.Scan(&c.ID, &c.MonitorID, &c.StatusCode, &c.ResponseTimeMs, &c.IsUp, &c.Error, &c.CheckedAt); err != nil {
 			return nil, err
 		}
-		c.IsUp = isUpInt == 1
 		checks = append(checks, c)
 	}
 	return checks, rows.Err()
@@ -197,24 +194,25 @@ func GetMonitorStats(db *sql.DB, monitorID string) (*models.MonitorStats, error)
 		{168, &stats.Uptime7d},
 		{720, &stats.Uptime30d},
 	} {
-		var total, up int
+		var total int
+		var up sql.NullInt64
 		err := db.QueryRow(
-			`SELECT COUNT(*), SUM(CASE WHEN is_up=1 THEN 1 ELSE 0 END)
-			 FROM checks WHERE monitor_id=? AND checked_at >= datetime('now', ? || ' hours')`,
-			monitorID, fmt.Sprintf("-%d", period.hours),
+			`SELECT COUNT(*), SUM(CASE WHEN is_up THEN 1 ELSE 0 END)
+			 FROM checks WHERE monitor_id=$1 AND checked_at >= NOW() - make_interval(hours => $2)`,
+			monitorID, period.hours,
 		).Scan(&total, &up)
 		if err != nil {
 			return nil, err
 		}
 		if total > 0 {
-			*period.dest = float64(up) / float64(total) * 100
+			*period.dest = float64(up.Int64) / float64(total) * 100
 		}
 	}
 	return stats, nil
 }
 
 func PurgeOldChecks(db *sql.DB) error {
-	_, err := db.Exec(`DELETE FROM checks WHERE checked_at < datetime('now', '-90 days')`)
+	_, err := db.Exec(`DELETE FROM checks WHERE checked_at < NOW() - INTERVAL '90 days'`)
 	return err
 }
 
@@ -228,7 +226,7 @@ func CreateIncident(db *sql.DB, monitorID, errStr string) (*models.Incident, err
 		Error:     &errStr,
 	}
 	_, err := db.Exec(
-		`INSERT INTO incidents (id, monitor_id, started_at, error) VALUES (?, ?, ?, ?)`,
+		`INSERT INTO incidents (id, monitor_id, started_at, error) VALUES ($1, $2, $3, $4)`,
 		inc.ID, inc.MonitorID, inc.StartedAt, inc.Error,
 	)
 	if err != nil {
@@ -239,7 +237,7 @@ func CreateIncident(db *sql.DB, monitorID, errStr string) (*models.Incident, err
 
 func ResolveIncident(db *sql.DB, monitorID string) error {
 	_, err := db.Exec(
-		`UPDATE incidents SET resolved_at=? WHERE monitor_id=? AND resolved_at IS NULL`,
+		`UPDATE incidents SET resolved_at=$1 WHERE monitor_id=$2 AND resolved_at IS NULL`,
 		time.Now().UTC(), monitorID,
 	)
 	return err
@@ -248,7 +246,7 @@ func ResolveIncident(db *sql.DB, monitorID string) error {
 func ListIncidents(db *sql.DB, monitorID string) ([]*models.Incident, error) {
 	rows, err := db.Query(
 		`SELECT id, monitor_id, started_at, resolved_at, error FROM incidents
-		 WHERE monitor_id=? ORDER BY started_at DESC LIMIT 50`, monitorID,
+		 WHERE monitor_id=$1 ORDER BY started_at DESC LIMIT 50`, monitorID,
 	)
 	if err != nil {
 		return nil, err
@@ -268,25 +266,15 @@ func ListIncidents(db *sql.DB, monitorID string) ([]*models.Incident, error) {
 
 // ---- helpers ----
 
-func boolToInt(b bool) int {
-	if b {
-		return 1
-	}
-	return 0
-}
-
 func scanMonitor(row *sql.Row) (*models.Monitor, error) {
 	m := &models.Monitor{}
-	var alertEmailInt, isPublicInt int
 	err := row.Scan(
 		&m.ID, &m.UserID, &m.Name, &m.URL, &m.IntervalSeconds, &m.Status,
-		&alertEmailInt, &isPublicInt, &m.ConsecutiveFailures, &m.CreatedAt, &m.UpdatedAt,
+		&m.AlertEmail, &m.IsPublic, &m.ConsecutiveFailures, &m.CreatedAt, &m.UpdatedAt,
 	)
 	if err != nil {
 		return nil, err
 	}
-	m.AlertEmail = alertEmailInt == 1
-	m.IsPublic = isPublicInt == 1
 	return m, nil
 }
 
@@ -294,15 +282,12 @@ func scanMonitors(rows *sql.Rows) ([]*models.Monitor, error) {
 	var monitors []*models.Monitor
 	for rows.Next() {
 		m := &models.Monitor{}
-		var alertEmailInt, isPublicInt int
 		if err := rows.Scan(
 			&m.ID, &m.UserID, &m.Name, &m.URL, &m.IntervalSeconds, &m.Status,
-			&alertEmailInt, &isPublicInt, &m.ConsecutiveFailures, &m.CreatedAt, &m.UpdatedAt,
+			&m.AlertEmail, &m.IsPublic, &m.ConsecutiveFailures, &m.CreatedAt, &m.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}
-		m.AlertEmail = alertEmailInt == 1
-		m.IsPublic = isPublicInt == 1
 		monitors = append(monitors, m)
 	}
 	return monitors, rows.Err()

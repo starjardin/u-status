@@ -4,7 +4,7 @@ CREATE TABLE users (
     email TEXT UNIQUE NOT NULL,
     password_hash TEXT NOT NULL,
     plan TEXT NOT NULL DEFAULT 'free',
-    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE monitors (
@@ -14,11 +14,11 @@ CREATE TABLE monitors (
     url TEXT NOT NULL,
     interval_seconds INTEGER NOT NULL DEFAULT 60,
     status TEXT NOT NULL DEFAULT 'pending',
-    alert_email INTEGER NOT NULL DEFAULT 1,
-    is_public INTEGER NOT NULL DEFAULT 0,
+    alert_email BOOLEAN NOT NULL DEFAULT TRUE,
+    is_public BOOLEAN NOT NULL DEFAULT FALSE,
     consecutive_failures INTEGER NOT NULL DEFAULT 0,
-    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX idx_monitors_user_id ON monitors(user_id);
@@ -28,9 +28,9 @@ CREATE TABLE checks (
     monitor_id TEXT NOT NULL REFERENCES monitors(id) ON DELETE CASCADE,
     status_code INTEGER,
     response_time_ms INTEGER,
-    is_up INTEGER NOT NULL,
+    is_up BOOLEAN NOT NULL,
     error TEXT,
-    checked_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    checked_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX idx_checks_monitor_id ON checks(monitor_id);
@@ -39,8 +39,8 @@ CREATE INDEX idx_checks_checked_at ON checks(checked_at);
 CREATE TABLE incidents (
     id TEXT PRIMARY KEY,
     monitor_id TEXT NOT NULL REFERENCES monitors(id) ON DELETE CASCADE,
-    started_at DATETIME NOT NULL,
-    resolved_at DATETIME,
+    started_at TIMESTAMPTZ NOT NULL,
+    resolved_at TIMESTAMPTZ,
     error TEXT
 );
 

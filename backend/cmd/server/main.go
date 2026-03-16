@@ -16,13 +16,13 @@ import (
 )
 
 func main() {
-	dbPath := getenv("DATABASE_PATH", "./data/u-status.db")
+	databaseURL := getenv("DATABASE_URL", "postgres://ustatus:ustatus@localhost:5432/ustatus?sslmode=disable")
 	jwtSecret := getenv("JWT_SECRET", "change-me-in-production")
 	port := getenv("PORT", "8080")
 	allowedOrigins := strings.Split(getenv("ALLOWED_ORIGINS", "http://localhost:5173"), ",")
 
 	// Open database
-	db, err := appdb.Open(dbPath)
+	db, err := appdb.Open(databaseURL)
 	if err != nil {
 		log.Fatalf("failed to open database: %v", err)
 	}
