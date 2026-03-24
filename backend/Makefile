@@ -42,13 +42,13 @@ build:
 
 ## Apply migrations (standalone, for local dev without running server)
 migrate-up:
-	@mkdir -p data
-	@go run -tags migrator ./cmd/migrate up
+	@DATABASE_URL="postgres://$(DB_USER):$(DB_PASSWORD)@localhost:$(DB_PORT)/$(DB_NAME)?sslmode=disable" \
+	go run ./cmd/migrate up
 
 ## Roll back last migration
 migrate-down:
-	@mkdir -p data
-	@go run -tags migrator ./cmd/migrate down
+	@DATABASE_URL="postgres://$(DB_USER):$(DB_PASSWORD)@localhost:$(DB_PORT)/$(DB_NAME)?sslmode=disable" \
+	go run ./cmd/migrate down
 
 ## Run tests
 test:

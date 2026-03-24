@@ -1,16 +1,28 @@
 services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ustatus
+      POSTGRES_PASSWORD: ustatus
+      POSTGRES_DB: ustatus
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+
   backend:
     build:
       context: ./backend
     ports:
       - "8080:8080"
+    depends_on:
+      - postgres
     environment:
-      DATABASE_PATH: /data/u-status.db
+      DATABASE_URL: "postgres://ustatus:ustatus@postgres:5432/ustatus?sslmode=disable"
       JWT_SECRET: change-me-in-dev
       PORT: "8080"
       ALLOWED_ORIGINS: "http://localhost:5173"
-    volumes:
-      - sqlite_data:/data
 
 volumes:
-  sqlite_data:
+  pg_data:

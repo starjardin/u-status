@@ -14,5 +14,10 @@ RUN apk add --no-cache ca-certificates tzdata
 WORKDIR /app
 COPY --from=builder /app/server .
 
+ENV DATABASE_URL=""
+ENV JWT_SECRET=""
+ENV PORT="8080"
+ENV ALLOWED_ORIGINS="http://localhost:5173"
+
 EXPOSE 8080
 CMD ["./server"]

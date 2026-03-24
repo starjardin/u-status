@@ -10,7 +10,7 @@ import (
 )
 
 //go:embed migrations/*.sql
-var embedMigrations embed.FS
+var EmbedMigrations embed.FS
 
 func Open(databaseURL string) (*sql.DB, error) {
 	db, err := sql.Open("postgres", databaseURL)
@@ -24,7 +24,7 @@ func Open(databaseURL string) (*sql.DB, error) {
 }
 
 func Migrate(db *sql.DB) error {
-	goose.SetBaseFS(embedMigrations)
+	goose.SetBaseFS(EmbedMigrations)
 	if err := goose.SetDialect("postgres"); err != nil {
 		return fmt.Errorf("set dialect: %w", err)
 	}
