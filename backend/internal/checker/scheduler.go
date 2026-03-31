@@ -15,8 +15,8 @@ type Scheduler struct {
 	db       *sql.DB
 	mu       sync.Mutex
 	monitors map[string]context.CancelFunc // monitorID -> cancel
-	notifyCh <-chan string                  // receives new monitor IDs from API
-	deleteCh <-chan string                  // receives deleted monitor IDs from API
+	notifyCh <-chan string                 // receives new monitor IDs from API
+	deleteCh <-chan string                 // receives deleted monitor IDs from API
 }
 
 func NewScheduler(db *sql.DB, notifyCh <-chan string, deleteCh <-chan string) *Scheduler {
@@ -158,8 +158,8 @@ func (s *Scheduler) updateIncidentState(m *models.Monitor, result CheckResult) {
 		}
 	} else {
 		newFailures := m.ConsecutiveFailures + 1
-		if newFailures >= 2 && m.Status != "down" {
-			// Transition to DOWN after 2 consecutive failures
+		if newFailures >= 1 && m.Status != "down" {
+			// Transition to DOWN after 1 consecutive failure
 			errStr := ""
 			if result.Error != nil {
 				errStr = *result.Error
