@@ -10,16 +10,28 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/joho/godotenv"
 	"github.com/user/u-status/internal/api"
 	"github.com/user/u-status/internal/checker"
 	appdb "github.com/user/u-status/internal/db"
+	"github.com/user/u-status/internal/notifier"
 )
 
 func main() {
+	// Load .env file if present (no error if missing)
+	// Try multiple common locations depending on working directory
+	for _, f := range []string{".env", "../.env", "../../.env"} {
+		if err := godotenv.Load(f); err == nil {
+			break
+		}
+	}
+
 	databaseURL := getenv("DATABASE_URL", "postgres://ustatus:ustatus@localhost:5432/ustatus?sslmode=disable")
 	jwtSecret := getenv("JWT_SECRET", "change-me-in-production")
 	port := getenv("PORT", "8080")
 	allowedOrigins := strings.Split(getenv("ALLOWED_ORIGINS", "http://localhost:5173"), ",")
+	smtpFrom := getenv("POSTMARK_FROM", "")
+	postmarkToken := getenv("POSTMARK_SERVER_TOKEN", "")
 
 	// Open database
 	db, err := appdb.Open(databaseURL)
@@ -42,7 +54,8 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	sched := checker.NewScheduler(db, notifyCh, deleteCh)
+	emailNotifier := notifier.New(postmarkToken, smtpFrom)
+	sched := checker.NewScheduler(db, notifyCh, deleteCh, emailNotifier)
 	sched.Start(ctx)
 
 	// Build router

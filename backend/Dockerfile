@@ -16,6 +16,8 @@ COPY --from=builder /app/server .
 
 ENV DATABASE_URL=""
 ENV JWT_SECRET=""
+ENV POSTMARK_SERVER_TOKEN=""
+ENV POSTMARK_FROM=""
 ENV PORT="8080"
 ENV ALLOWED_ORIGINS="http://localhost:5173"
 

@@ -9,6 +9,7 @@ import (
 
 	appdb "github.com/user/u-status/internal/db"
 	"github.com/user/u-status/internal/models"
+	"github.com/user/u-status/internal/notifier"
 )
 
 type Scheduler struct {
@@ -17,14 +18,16 @@ type Scheduler struct {
 	monitors map[string]context.CancelFunc // monitorID -> cancel
 	notifyCh <-chan string                 // receives new monitor IDs from API
 	deleteCh <-chan string                 // receives deleted monitor IDs from API
+	notifier *notifier.Notifier
 }
 
-func NewScheduler(db *sql.DB, notifyCh <-chan string, deleteCh <-chan string) *Scheduler {
+func NewScheduler(db *sql.DB, notifyCh <-chan string, deleteCh <-chan string, n *notifier.Notifier) *Scheduler {
 	return &Scheduler{
 		db:       db,
 		monitors: make(map[string]context.CancelFunc),
 		notifyCh: notifyCh,
 		deleteCh: deleteCh,
+		notifier: n,
 	}
 }
 
@@ -150,8 +153,15 @@ func (s *Scheduler) updateIncidentState(m *models.Monitor, result CheckResult) {
 				log.Printf("checker: failed to update status for %s: %v", m.ID, err)
 			}
 			log.Printf("checker: %s RECOVERED", m.URL)
+			s.notifyUser(m, "up", "")
+		} else if m.Status == "pending" {
+			// First check came back up
+			if err := appdb.UpdateMonitorStatus(s.db, m.ID, "up", 0); err != nil {
+				log.Printf("checker: failed to update status for %s: %v", m.ID, err)
+			}
+			s.notifyUser(m, "up", "")
 		} else {
-			// Was already up or pending
+			// Was already up
 			if err := appdb.UpdateMonitorStatus(s.db, m.ID, "up", 0); err != nil {
 				log.Printf("checker: failed to update status for %s: %v", m.ID, err)
 			}
@@ -171,11 +181,29 @@ func (s *Scheduler) updateIncidentState(m *models.Monitor, result CheckResult) {
 				log.Printf("checker: failed to update status for %s: %v", m.ID, err)
 			}
 			log.Printf("checker: %s is DOWN", m.URL)
+			s.notifyUser(m, "down", errStr)
 		} else {
 			// Still accumulating failures
 			if err := appdb.UpdateMonitorStatus(s.db, m.ID, m.Status, newFailures); err != nil {
 				log.Printf("checker: failed to update failure count for %s: %v", m.ID, err)
 			}
 		}
+	}
+}
+
+func (s *Scheduler) notifyUser(m *models.Monitor, newStatus, errDetail string) {
+	if !m.AlertEmail {
+		return
+	}
+	user, err := appdb.GetUserByID(s.db, m.UserID)
+	if err != nil {
+		log.Printf("checker: could not load user for monitor %s: %v", m.ID, err)
+		return
+	}
+	switch newStatus {
+	case "up":
+		s.notifier.SendStatusUp(user.Email, m.Name, m.URL)
+	case "down":
+		s.notifier.SendStatusDown(user.Email, m.Name, m.URL, errDetail)
 	}
 }
