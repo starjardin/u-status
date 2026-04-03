@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"strings"
 
-	appdb "github.com/user/u-status/internal/db"
 	"github.com/user/u-status/internal/auth"
+	appdb "github.com/user/u-status/internal/db"
 	"github.com/user/u-status/internal/models"
 )
 
@@ -116,6 +116,7 @@ func sanitizeUser(u *models.User) map[string]any {
 		"id":         u.ID,
 		"email":      u.Email,
 		"plan":       u.Plan,
+		"is_admin":   u.IsAdmin,
 		"created_at": u.CreatedAt,
 	}
 }

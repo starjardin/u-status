@@ -16,11 +16,12 @@ func CreateUser(db *sql.DB, email, passwordHash string) (*models.User, error) {
 		Email:        email,
 		PasswordHash: passwordHash,
 		Plan:         models.PlanFree,
+		IsAdmin:      false,
 		CreatedAt:    time.Now().UTC(),
 	}
 	_, err := db.Exec(
-		`INSERT INTO users (id, email, password_hash, plan, created_at) VALUES ($1, $2, $3, $4, $5)`,
-		u.ID, u.Email, u.PasswordHash, u.Plan, u.CreatedAt,
+		`INSERT INTO users (id, email, password_hash, plan, is_admin, created_at) VALUES ($1, $2, $3, $4, $5, $6)`,
+		u.ID, u.Email, u.PasswordHash, u.Plan, u.IsAdmin, u.CreatedAt,
 	)
 	if err != nil {
 		return nil, err
@@ -31,8 +32,8 @@ func CreateUser(db *sql.DB, email, passwordHash string) (*models.User, error) {
 func GetUserByEmail(db *sql.DB, email string) (*models.User, error) {
 	u := &models.User{}
 	err := db.QueryRow(
-		`SELECT id, email, password_hash, plan, created_at FROM users WHERE email = $1`, email,
-	).Scan(&u.ID, &u.Email, &u.PasswordHash, &u.Plan, &u.CreatedAt)
+		`SELECT id, email, password_hash, plan, is_admin, created_at FROM users WHERE email = $1`, email,
+	).Scan(&u.ID, &u.Email, &u.PasswordHash, &u.Plan, &u.IsAdmin, &u.CreatedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -42,12 +43,32 @@ func GetUserByEmail(db *sql.DB, email string) (*models.User, error) {
 func GetUserByID(db *sql.DB, id string) (*models.User, error) {
 	u := &models.User{}
 	err := db.QueryRow(
-		`SELECT id, email, password_hash, plan, created_at FROM users WHERE id = $1`, id,
-	).Scan(&u.ID, &u.Email, &u.PasswordHash, &u.Plan, &u.CreatedAt)
+		`SELECT id, email, password_hash, plan, is_admin, created_at FROM users WHERE id = $1`, id,
+	).Scan(&u.ID, &u.Email, &u.PasswordHash, &u.Plan, &u.IsAdmin, &u.CreatedAt)
 	if err != nil {
 		return nil, err
 	}
 	return u, nil
+}
+
+func ListAllUsers(db *sql.DB) ([]*models.User, error) {
+	rows, err := db.Query(
+		`SELECT id, email, password_hash, plan, is_admin, created_at FROM users ORDER BY created_at DESC`,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var users []*models.User
+	for rows.Next() {
+		u := &models.User{}
+		if err := rows.Scan(&u.ID, &u.Email, &u.PasswordHash, &u.Plan, &u.IsAdmin, &u.CreatedAt); err != nil {
+			return nil, err
+		}
+		users = append(users, u)
+	}
+	return users, rows.Err()
 }
 
 // ---- Monitors ----

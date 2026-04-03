@@ -84,3 +84,11 @@ export const monitorsApi = {
   getIncidents: (id: string) =>
     request<Incident[]>(`/api/monitors/${id}/incidents`),
 }
+
+// Admin
+export const adminApi = {
+  listUsers: () => request<User[]>('/api/admin/users'),
+
+  getUserMonitors: (userId: string) =>
+    request<Monitor[]>(`/api/admin/users/${userId}/monitors`),
+}

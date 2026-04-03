@@ -3,7 +3,10 @@ import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 import DashboardPage from './pages/DashboardPage'
 import MonitorDetailPage from './pages/MonitorDetailPage'
+import AdminUsersPage from './pages/AdminUsersPage'
+import AdminUserMonitorsPage from './pages/AdminUserMonitorsPage'
 import ProtectedRoute from './components/ProtectedRoute'
+import AdminRoute from './components/AdminRoute'
 
 export default function App() {
   return (
@@ -25,6 +28,22 @@ export default function App() {
           <ProtectedRoute>
             <MonitorDetailPage />
           </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/users"
+        element={
+          <AdminRoute>
+            <AdminUsersPage />
+          </AdminRoute>
+        }
+      />
+      <Route
+        path="/admin/users/:userId/monitors"
+        element={
+          <AdminRoute>
+            <AdminUserMonitorsPage />
+          </AdminRoute>
         }
       />
     </Routes>

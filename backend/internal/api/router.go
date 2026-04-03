@@ -24,6 +24,7 @@ func NewRouter(db *sql.DB, jwtSecret string, allowedOrigins []string, notifyCh c
 
 	authHandler := &AuthHandler{DB: db, JWTSecret: jwtSecret}
 	monitorHandler := &MonitorHandler{DB: db, NotifyCh: notifyCh, DeleteCh: deleteCh}
+	adminHandler := &AdminHandler{DB: db}
 
 	// Public routes
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
@@ -48,6 +49,13 @@ func NewRouter(db *sql.DB, jwtSecret string, allowedOrigins []string, notifyCh c
 			r.Get("/{id}/checks", monitorHandler.GetChecks)
 			r.Get("/{id}/stats", monitorHandler.GetStats)
 			r.Get("/{id}/incidents", monitorHandler.GetIncidents)
+		})
+
+		// Admin-only routes
+		r.Route("/api/admin", func(r chi.Router) {
+			r.Use(AdminOnlyMiddleware(db))
+			r.Get("/users", adminHandler.ListUsers)
+			r.Get("/users/{userId}/monitors", adminHandler.GetUserMonitors)
 		})
 	})
 

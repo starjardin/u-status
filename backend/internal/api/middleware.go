@@ -39,6 +39,28 @@ func JWTMiddleware(jwtSecret string) func(http.Handler) http.Handler {
 	}
 }
 
+func AdminOnlyMiddleware(database *sql.DB) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			userID := GetUserID(r.Context())
+			if userID == "" {
+				respondError(w, http.StatusUnauthorized, "unauthorized")
+				return
+			}
+			user, err := getUserFromDB(database, userID)
+			if err != nil {
+				respondError(w, http.StatusInternalServerError, "could not fetch user")
+				return
+			}
+			if !user.IsAdmin {
+				respondError(w, http.StatusForbidden, "admin access required")
+				return
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
 func PlanLimitsMiddleware(database *sql.DB) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

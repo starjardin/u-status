@@ -82,6 +82,11 @@ export default function DashboardPage() {
         <div className="max-w-5xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
           <h1 className="text-lg font-bold text-white">u-status</h1>
           <div className="flex items-center gap-4">
+            {user?.is_admin && (
+              <Link to="/admin/users" className="text-sm text-red-400 hover:text-red-300 font-medium transition-colors">
+                Admin
+              </Link>
+            )}
             <span className="text-sm text-gray-400">{user?.email}</span>
             <span className="text-xs px-2 py-0.5 rounded bg-gray-800 text-gray-300 uppercase tracking-wide">
               {user?.plan}

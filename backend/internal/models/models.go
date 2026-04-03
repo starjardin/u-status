@@ -21,21 +21,22 @@ type User struct {
 	Email        string    `json:"email"`
 	PasswordHash string    `json:"-"`
 	Plan         Plan      `json:"plan"`
+	IsAdmin      bool      `json:"is_admin"`
 	CreatedAt    time.Time `json:"created_at"`
 }
 
 type Monitor struct {
-	ID                   string    `json:"id"`
-	UserID               string    `json:"user_id"`
-	Name                 string    `json:"name"`
-	URL                  string    `json:"url"`
-	IntervalSeconds      int       `json:"interval_seconds"`
-	Status               string    `json:"status"` // "up" | "down" | "pending"
-	AlertEmail           bool      `json:"alert_email"`
-	IsPublic             bool      `json:"is_public"`
-	ConsecutiveFailures  int       `json:"consecutive_failures"`
-	CreatedAt            time.Time `json:"created_at"`
-	UpdatedAt            time.Time `json:"updated_at"`
+	ID                  string    `json:"id"`
+	UserID              string    `json:"user_id"`
+	Name                string    `json:"name"`
+	URL                 string    `json:"url"`
+	IntervalSeconds     int       `json:"interval_seconds"`
+	Status              string    `json:"status"` // "up" | "down" | "pending"
+	AlertEmail          bool      `json:"alert_email"`
+	IsPublic            bool      `json:"is_public"`
+	ConsecutiveFailures int       `json:"consecutive_failures"`
+	CreatedAt           time.Time `json:"created_at"`
+	UpdatedAt           time.Time `json:"updated_at"`
 }
 
 type Check struct {

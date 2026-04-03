@@ -2,6 +2,7 @@ export interface User {
   id: string
   email: string
   plan: 'free' | 'pro' | 'agency'
+  is_admin: boolean
   created_at: string
 }
 
